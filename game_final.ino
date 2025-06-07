@@ -1,28 +1,30 @@
 #include <Adafruit_CircuitPlayground.h>
 #include <cmath>
 
-int lightRead;
-int globalBright;
+int lightRead=0;
+int globalBright=0;
 
 int startFlag=0;
 int roundFlag=0;
 int movingLight=0;
-int finalScore;
-int highScore;
-int hardFinalScore;
-int hardHighScore;
+int finalScore=0;
+int highScore=0;
+int hardHighScore=0;
+int target=0;
 volatile bool hardMode=0;
 
 
 void setup() {
   CircuitPlayground.begin();
 
-  Serial.begin(9600);
-  Serial.println("Use the left button (D4) to start the game and the right button (D5) to play.");
-  Serial.println("Flip switch (D7) for hard mode.");
+  // Seed RNG
+  randomSeed(analogRead(0));
 
-  attachInterrupt(digitalPinToInterrupt(4), gameStart, FALLING);
-  attachInterrupt(digitalPinToInterrupt(5), endRound, FALLING);
+  Serial.begin(9600);
+
+  // Interrupts
+  attachInterrupt(digitalPinToInterrupt(4), gameStart, RISING);
+  attachInterrupt(digitalPinToInterrupt(5), endRound, RISING);
   attachInterrupt(digitalPinToInterrupt(7), setHardMode, CHANGE);
 }
 
@@ -30,11 +32,10 @@ void loop() {
 
   // Set game brightness
   lightRead = CircuitPlayground.lightSensor();
-  globalBright = map(lightRead, 0, 1000, 90, 255);
+  globalBright = 128;
 
   // Start Game
   if(startFlag==1) {
-    int target = random(0,10);
 
     // Play round i
     for(int i=1; ; i++) {
@@ -45,13 +46,8 @@ void loop() {
       }
 
       // Set variables
-      int color;
-        if(hardMode){
-          color = 85;
-        } else {
-          color = 47+i*5;
-        }
-      int roundSpeed = 1000*pow(2.72, (-0.1*(i-1)))+50;
+      int color = 47+i*10;
+      int roundSpeed = 500*pow(2.72, (-0.1*(i-1)))+100;
 
       if(hardMode) {
         Serial.print("HARD MODE  ");
@@ -67,7 +63,7 @@ void loop() {
       if(i % 2 == 0) {
 
         // Even rounds - Going backwards
-        target = (target + random(1, 8)) % 10;
+        target = (target + random(2, 7)) % 10;
         
         for(int j=movingLight, k=0; j>=0; j--, k++) {
 
@@ -87,7 +83,7 @@ void loop() {
           }
 
           // HARD MODE
-          if(hardMode && j==target-1) {
+          if(hardMode && j==(target+9)%10) {
             movingLight = j;
             roundFlag = 0;
             break;
@@ -103,7 +99,7 @@ void loop() {
       } else {
 
         // Odd rounds - Going forwards
-        target = (target - random(1, 8) + 9) % 10;
+        target = (target + random(2, 7)) % 10;
         
         for(int j=movingLight, k=0; j<10; j++, k++) {
 
@@ -123,7 +119,7 @@ void loop() {
           }
 
           // HARD MODE
-          if(hardMode && j==target+1) {
+          if(hardMode && j==(target+1)%10) {
             movingLight = j;
             roundFlag = 0;
             break;
@@ -153,7 +149,7 @@ void loop() {
           }
           Serial.print("Your Score:  ");
           Serial.println(finalScore);
-          Serial.print("High Score:  ");
+          Serial.print("Hard High Score:  ");
           Serial.println(hardHighScore);
 
         } else {
@@ -175,28 +171,28 @@ void loop() {
   if(finalScore>highScore) {
     highScore = finalScore;
   }
-  if(hardFinalScore>hardHighScore) {
-    hardHighScore = hardFinalScore;
+  if(finalScore>hardHighScore) {
+    hardHighScore = finalScore;
   }
 }
 
 void gameStart() {
   startFlag=1;
-  delay(5);
+  delay(25);
 }
 
 void endRound() {
   roundFlag = 1;
-  delay(5);
+  delay(25);
 }
 
 void setHardMode() {
   hardMode=!hardMode;
-  delay(5);
+  delay(25);
 }
 
 void newHighScore() {
-  int textDelay(300);
+  int textDelay = 300;
 
   Serial.print("N");
   delay(textDelay);
